@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Jon Sarley"]
   s.email       = ["jsarley@softmodal.com"]
   s.homepage    = "http://softmodal.com"
+  s.summary     = %q{Dumps and retrieves tabular data to and from an Excel file.}
   s.description     = %q{Dumps and retrieves tabular data to and from an Excel file.}
 
   s.add_dependency "spreadsheet"
