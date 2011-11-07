@@ -31,34 +31,29 @@ module ExcelLoader
   # ==== Returns
   # Array:: An array of hashes representing the rows in the file.
   def self.file_to_array(path, index=0)
-    book = Spreadsheet.open(path)
-    sheet = book.worksheet(index)
     rows = []
-    headers = []
-    is_header_row = true
-    sheet.each(0) do |r|
-      obj = {}
-      r.each_with_index do |cell, i|
-        if is_header_row
-          raise "Each column must have a header" unless cell
-          headers.push(cell.intern)
-        else
-          if headers[i]
-            obj[headers[i]] = cell.respond_to?(:value) ? cell.value : cell
-          end
-        end
-      end
-      if is_header_row 
-        is_header_row = false
-      else
-        #don't add rows that only have whitespace
-        break if obj == {} or (obj.values.map { |v| v.to_s.strip } - [""]).empty?
-        #set values to nil if not present
-        headers.each { |header| obj[header] = nil if obj[header].nil? }
-        rows.push(obj)
-      end
+    headers = self.headers(path, index)
+    self.process(path, index) do |row|
+      break if row == {} or (row.values.map { |v| v.to_s.strip } - [""]).empty?
+      headers.each { |header| row[header] = nil if row[header].nil? }
+      rows.push(row)
     end
     rows
+  end
+  
+  def self.process(path, index=0)
+    book = Spreadsheet.open(path)
+    sheet = book.worksheet(index)
+    headers = self.headers(path, index)
+    sheet.each(1) do |r|
+      obj = {}
+      r.each_with_index do |cell, i|
+        if headers[i]
+          obj[headers[i]] = cell.respond_to?(:value) ? cell.value : cell
+        end
+      end
+      yield obj
+    end
   end
 
   # Dumps an array into an ExcelLoader file.  The file will be laid out like a table.  

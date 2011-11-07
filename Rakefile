@@ -7,7 +7,7 @@ require "spec/rake/spectask"
 
 spec = Gem::Specification.new do |s| 
   s.name = "excel_loader"
-  s.version = "0.0.3"
+  s.version = "0.0.4"
   s.author = "Jon Sarley"
   s.email = "jsarley@softmodal.com"
   s.homepage = "http://www.softmodal.com"
