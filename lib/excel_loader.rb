@@ -33,7 +33,10 @@ module ExcelLoader
   def self.file_to_array(path, index=0)
     rows = []
     headers = self.headers(path, index)
+    i = 0
     self.process(path, index) do |row|
+      i += 1
+      next if i == 1
       break if row == {} or (row.values.map { |v| v.to_s.strip } - [""]).empty?
       headers.each { |header| row[header] = nil if row[header].nil? }
       rows.push(row)
@@ -45,7 +48,7 @@ module ExcelLoader
     book = Spreadsheet.open(path)
     sheet = book.worksheet(index)
     headers = self.headers(path, index)
-    sheet.each(1) do |r|
+    sheet.each(0) do |r|
       obj = {}
       r.each_with_index do |cell, i|
         if headers[i]
