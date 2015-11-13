@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'spreadsheet'
+require 'rubyXL'
 
 module ExcelLoader
   # Dumps an ExcelLoader file into an array of hashes.  The file must be laid out like a table.
@@ -44,13 +45,20 @@ module ExcelLoader
     rows
   end
   
+  def self.workbook(path)
+    path.to_s.match(/\.xlsx/i) ? RubyXL::Parser.parse(path) : Spreadsheet.open(path)
+  end
+  
+  def self.sheet(path, index=0)
+    book = workbook(path)
+    book.respond_to?(:worksheet) ? book.worksheet(index) : book[index]
+  end
+  
   def self.process(path, index=0)
-    book = Spreadsheet.open(path)
-    sheet = book.worksheet(index)
     headers = self.headers(path, index)
-    sheet.each(0) do |r|
+    sheet(path, index).each do |row|
       obj = {}
-      r.each_with_index do |cell, i|
+      cells(row).each_with_index do |cell, i|
         if headers[i]
           obj[headers[i]] = cell.respond_to?(:value) ? cell.value : cell
         end
@@ -100,7 +108,11 @@ module ExcelLoader
   def self.array_to_file(arr, mapping=nil, path=nil)
     path ||= "#{rand(9999999999)}.xls"
     book = Spreadsheet::Workbook.new
-    sheet = book.create_worksheet :name => 'Sheet1'
+    sheet = book.create_worksheet(:name => 'Sheet1')
+    if path.match(/\.xlsx$/i)
+      book = RubyXL::Workbook.new
+      sheet = book[0]
+    end
     
     types = arr.map { |item| item.class }.uniq
     unless types == [Hash] or types == [Array]
@@ -108,18 +120,38 @@ module ExcelLoader
     end
     
     rows = types == [Hash] ? hashes_to_arrays(arr, mapping) : arr
-    rows.each_index do |index|
-      sheet.row(index).concat(rows[index])
+    if path.match(/\.xlsx$/i)
+      rows.each_with_index do |row, i|
+        row.each_with_index do |val, j|
+          sheet.add_cell(i, j, val)
+        end
+      end
+    else
+      rows.each_index do |index|
+        sheet.row(index).concat(rows[index])
+      end
     end
     book.write(path)
     path
   end
   
+  def self.cells(row)
+    return [] if !row
+    row.respond_to?(:cells) ? row.cells : row
+  end
+  
   # Returns an array of the headers of this file
   def self.headers(path, index=0)
-    book = Spreadsheet.open(path)
-    sheet = book.worksheet(index)
-    sheet.row(0).map { |i| i.intern }
+    sht = sheet(path, index)
+    row = sht.respond_to?(:row) ? sht.row(0) : sht[0]
+    cells = 
+    arr = []
+    cells(row).each do |cell|
+      next if !cell
+      val = cell.respond_to?(:value) ? cell.value : cell
+      arr.push(val.to_s.intern)
+    end
+    arr
   end
   
   private
